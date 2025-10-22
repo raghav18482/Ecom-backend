@@ -4,7 +4,7 @@ import os
 
 class Settings(BaseSettings):
     # Database Configuration
-    DATABASE_URL: str
+    DATABASE_URL: str = "postgresql://postgres.ljweyghvntlakotdrxmm:thunderboltRG@18@aws-1-ap-south-1.pooler.supabase.com:6543/postgres"
     
     # Supabase Configuration
     SUPABASE_URL: str = ""
