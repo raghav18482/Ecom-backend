@@ -6,7 +6,7 @@ from app.models.product import Product, ProductCreate, ProductUpdate, ProductFil
 from app.services.product_service import ProductService
 from app.api.dependencies import get_current_user, get_current_user_optional
 from app.models.auth import User
-
+import logging
 router = APIRouter()
 
 @router.get("/", response_model=List[Product])
@@ -42,9 +42,10 @@ async def get_products(
         products = await ProductService.get_products(filters)
         return products
     except Exception as e:
+        logging.error(f"Error fetching products: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch products"
+            detail="Failed to fetch products due to {e}"
         )
 
 @router.get("/{product_id}", response_model=Product)
