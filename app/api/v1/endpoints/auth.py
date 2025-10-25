@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from app.models.auth import UserCreate, UserLogin, User, Token
 from app.services.auth_service import AuthService
 from app.api.dependencies import get_current_user
-
+import logging
 router = APIRouter()
 
 @router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
@@ -14,6 +14,7 @@ async def register(user_data: UserCreate):
     except HTTPException:
         raise
     except Exception as e:
+        logging.error(f"Registration failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Registration failed"
