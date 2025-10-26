@@ -10,53 +10,55 @@ class Database:
         self.pool: Optional[asyncpg.Pool] = None
 
     async def connect(self):
-        """Create database connection pool"""
+        """Create connection pool if not already created"""
+        if self.pool:
+            return
         try:
+            logger.info("Connecting to database...")
             self.pool = await asyncpg.create_pool(
                 settings.DATABASE_URL,
                 min_size=1,
-                max_size=10,
+                max_size=5,
                 command_timeout=60,
-                statement_cache_size=0  # Disable prepared statements for pgbouncer compatibility
+                statement_cache_size=0
             )
-            logger.info("Database connection pool created successfully")
+            logger.info("✅ Database pool created")
         except Exception as e:
-            logger.error(f"Failed to create database connection pool: {e}")
+            logger.exception(f"❌ Failed to connect to database: {e}")
+            self.pool = None
             raise
 
-    async def disconnect(self):
-        """Close database connection pool"""
-        if self.pool:
-            await self.pool.close()
-            logger.info("Database connection pool closed")
-
-    async def fetch_one(self, query: str, *args):
-        """Fetch a single row"""
-        async with self.pool.acquire() as conn:
-            return await conn.fetchrow(query, *args)
+    async def _ensure_connected(self):
+        """Ensure pool is ready before any query"""
+        if not self.pool:
+            await self.connect()
 
     async def fetch_all(self, query: str, *args):
-        """Fetch all rows"""
+        await self._ensure_connected()
         async with self.pool.acquire() as conn:
             return await conn.fetch(query, *args)
 
+    async def fetch_one(self, query: str, *args):
+        await self._ensure_connected()
+        async with self.pool.acquire() as conn:
+            return await conn.fetchrow(query, *args)
+
     async def execute(self, query: str, *args):
-        """Execute a query"""
+        await self._ensure_connected()
         async with self.pool.acquire() as conn:
             return await conn.execute(query, *args)
 
-    async def fetchval(self, query: str, *args):
-        """Fetch a single value"""
-        async with self.pool.acquire() as conn:
-            return await conn.fetchval(query, *args)
+    async def disconnect(self):
+        if self.pool:
+            await self.pool.close()
+            self.pool = None
+            logger.info("Database connection pool closed")
 
-# Global database instance
+# global instance
 db = Database()
 
 async def init_db():
-    """Initialize database connection"""
     await db.connect()
 
 async def close_db():
-    """Close database connection"""
     await db.disconnect()

@@ -1,32 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
 import logging
 from app.core.config import settings
-from app.core.database import init_db
 from app.api.v1.api import api_router
+from app.core.database import init_db, close_db
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    logger.info("Starting up Hoodie Store API...")
-    await init_db()
-    yield
-    # Shutdown
-    logger.info("Shutting down Hoodie Store API...")
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="A complete FastAPI backend for an e-commerce hoodie store",
-    lifespan=lifespan
 )
 
-# CORS middleware
 logger.info(f"CORS allowed origins: {settings.ALLOWED_ORIGINS}")
 app.add_middleware(
     CORSMiddleware,
@@ -36,8 +23,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API router
 app.include_router(api_router, prefix="/api/v1")
+
+@app.on_event("startup")
+async def startup_event():
+    try:
+        await init_db()
+    except Exception as e:
+        logger.error(f"Database init failed: {e}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await close_db()
 
 @app.get("/")
 async def root():
