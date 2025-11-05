@@ -52,6 +52,13 @@ class Database:
         conn = await self._get_connection()
         try:
             return await conn.fetch(query, *args)
+        except Exception as e:
+            logger.error(
+                f"❌ Database fetch_all error: {str(e)}\n"
+                f"Query: {query[:200]}...\n"
+                f"Args: {args}"
+            )
+            raise
         finally:
             await self._release_connection(conn)
 
@@ -59,6 +66,13 @@ class Database:
         conn = await self._get_connection()
         try:
             return await conn.fetchrow(query, *args)
+        except Exception as e:
+            logger.error(
+                f"❌ Database fetch_one error: {str(e)}\n"
+                f"Query: {query[:200]}...\n"
+                f"Args: {args}"
+            )
+            raise
         finally:
             await self._release_connection(conn)
 
@@ -66,6 +80,13 @@ class Database:
         conn = await self._get_connection()
         try:
             return await conn.execute(query, *args)
+        except Exception as e:
+            logger.error(
+                f"❌ Database execute error: {str(e)}\n"
+                f"Query: {query[:200]}...\n"
+                f"Args: {args}"
+            )
+            raise
         finally:
             await self._release_connection(conn)
 
